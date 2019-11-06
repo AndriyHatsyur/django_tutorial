@@ -1,31 +1,39 @@
-from django.http import HttpResponse
-from .models import Question
+from django.http import HttpResponse, HttpResponseRedirect
+from .models import Question, Choice
 from django.shortcuts import render, get_object_or_404
+from django.urls import reverse
+from django.views import generic
 
-def index(request):
 
-    question_list = Question.objects.order_by('-pub_date')[:5]
+class IndexView(generic.ListView):
+    template_name = 'polls/index.html'
+    context_object_name = 'question_list'
+
+    def get_queryset(self):
+        return Question.objects.order_by('-pub_date')[:5]
+
     
-    context = {
-        'question_list': question_list,
-    }
+class DetailView(generic.DetailView):
+    model = Question
+    template_name = 'polls/detail.html'
 
-    return render(request, 'polls/index.html', context)
+class ResultsView(generic.DetailView):
+    model = Question
+    template_name = 'polls/result.html'
 
-    
-
-def detail(request, id):
+#
+def vote(request, id):
     question = get_object_or_404(Question, pk=id)
 
-    context = {
-        'question': question,
-    }
+    try:
+        selected_choice = question.choice_set.get(pk=request.POST['choice'])
+    except (KeyError, Choice.DoesNotExist):
 
-    return render(request, 'polls/detail.html', context)
-    
-def result(request, id):
-    response = "You're looking at the results of question %s."
-    return HttpResponse(response % id)
-
-def vote(request, id):
-    return HttpResponse("You're voting on question %s." % id)
+        return render(request, 'polls/detail.html', {
+            'question': question,
+            'error_message': "You didn't select a choice.",
+        })
+    else:
+        selected_choice.votes += 1
+        selected_choice.save()
+        return HttpResponseRedirect(reverse('polls:result', args=(question.id,)))
