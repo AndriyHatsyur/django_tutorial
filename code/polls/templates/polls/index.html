@@ -1,3 +1,7 @@
+{% load static %}
+
+<link rel="stylesheet" type="text/css" href="{% static 'polls/styles/style.css' %}">
+
 {% if question_list%}
     <ul>
         {% for q in question_list %}
